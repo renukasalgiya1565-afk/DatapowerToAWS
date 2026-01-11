@@ -1,0 +1,108 @@
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                      DataPower Legacy Architecture                         ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+                                ┌──────────────┐
+                                │   Clients    │
+                                │  (HTTP/SOAP) │
+                                └──────┬───────┘
+                                       │
+                        ┌──────────────▼──────────────┐
+                        │  Multi-Protocol Gateway     │
+                        │    (MPGW)  0.0.0.0:8080    │
+                        │   JSON Parse Mode          │
+                        └──────────────┬──────────────┘
+                                       │
+              ┌────────────────────────┼────────────────────────┐
+              │                        │                        │
+    ┌─────────▼──────────┐  ┌─────────▼──────────┐   ┌─────────▼──────────┐
+    │ Processing Policy  │  │  URL Rewrite       │   │   AAA Policy       │
+    │ Rule-1: /v1/*      │  │  Pattern Matching  │   │   (LDAP)           │
+    │ Rule-2: /submit    │  │  Header Injection  │   │   HTTP Basic Auth  │
+    └─────────┬──────────┘  └─────────┬──────────┘   └─────────┬──────────┘
+              │                       │                        │
+    ┌─────────▼──────────┐  ┌─────────▼──────────┐   ┌─────────▼──────────┐
+    │   XSLT Transform   │  │  SOAP Actions      │   │  LDAP Directory    │
+    │  (JSON → SOAP)     │  │  Path Parameters   │   │  ldap.example.com  │
+    │  Conditional Routing
+    └─────────┬──────────┘  └──────────┬─────────┘   └─────────────────────┘
+              │                       │
+              └───────────┬───────────┘
+                          │
+                ┌─────────▼──────────┐
+                │ Backend Service    │
+                │ HTTPProxyService   │
+                │ https://backend... │
+                └────────────────────┘
+    
+    Key Components:
+    • MPGW: Handles routing, protocol conversion, and request processing
+    • Processing Policies: Define routing rules based on URI patterns
+    • URL Rewrite: Manipulates incoming requests (headers, paths)
+    • XSLT Transforms: JSON to SOAP conversion with conditional logic
+    • AAA: Authentication (HTTP Basic) and LDAP authorization
+    • Backend: HTTPS connection to SOAP web service
+
+
+
+
+╔════════════════════════════════════════════════════════════════════════════╗
+║                       AWS Target Architecture                              ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+                           ┌──────────────┐
+                           │   Clients    │
+                           │  (HTTP/SOAP) │
+                           └──────┬───────┘
+                                  │
+              ┌───────────────────▼────────────────────┐
+              │     API Gateway REST API               │
+              │     • /v1/customer (POST)              │
+              │     • /v1/underwriting/submit (POST)   │
+              │     • Request/Response Transformation   │
+              └───────────────┬────────────────────────┘
+                              │
+            ┌─────────────────┼─────────────────┐
+            │                 │                 │
+    ┌───────▼───────┐  ┌──────▼──────┐  ┌──────▼──────────────┐
+    │ Lambda         │  │ Lambda      │  │ Lambda Authorizer  │
+    │ Transformer    │  │ Transformer │  │ (LDAP Validation)  │
+    │ • JSON→SOAP    │  │ • Routing   │  │ • HTTP Basic Auth  │
+    │ • XSLT Logic   │  │ • Transform │  │ • LDAP Bind        │
+    │ • WS-Security  │  │ • Validation│  │ • Group Check      │
+    └───────┬────────┘  └──────┬──────┘  └──────┬─────────────┘
+            │                  │                │
+    ┌───────▼───────────────────▼────────────────▼────┐
+    │  AWS Secrets Manager                            │
+    │  • LDAP Credentials                             │
+    │  • WS-Security Username/Password                │
+    └───────────────────────────────────────────────────┘
+            │                  │
+    ┌───────▼──────────────────▼────────────────────────┐
+    │  CloudWatch Logs                                  │
+    │  • API Gateway Access Logs                       │
+    │  • Lambda Execution Logs                          │
+    │  • Audit Trail                                    │
+    └──────────────────────────────────────────────────┘
+            │
+    ┌───────▼──────────────────────────────────┐
+    │  Backend Service                         │
+    │  HTTPS → https://backend.example.com    │
+    │  (Via requests library in Lambda)        │
+    └──────────────────────────────────────────┘
+
+    AWS Services Used:
+    • API Gateway: REST API endpoint (replaces MPGW)
+    • Lambda: Serverless compute for transformations and authorization
+    • Secrets Manager: Credential storage (replaces hardcoded values)
+    • CloudWatch: Logging and monitoring (replaces DataPower audit logs)
+    • IAM: Access control and least-privilege policies
+
+    Benefits:
+    ✓ Serverless: No infrastructure to manage
+    ✓ Scalable: Auto-scales with traffic
+    ✓ Secure: Secrets Manager, CloudTrail, VPC options
+    ✓ Cost: Pay per invocation (~$0.20 per million requests)
+    ✓ Integrated: Native AWS monitoring and logging
+

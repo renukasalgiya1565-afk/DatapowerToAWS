@@ -1,0 +1,86 @@
+openapi: 3.0.0
+info:
+  title: Underwriting API
+  version: '1.0'
+  description: API for submitting customer and underwriting information, migrated from DataPower.
+servers:
+  - url: /prod
+paths:
+  /v1/customer:
+    post:
+      summary: Save Customer Information
+      operationId: saveCustomerInfo
+      security:
+        - BasicAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customer:
+                  type: object
+                address:
+                  type: object
+                demographics:
+                  type: object
+                employment:
+                  type: object
+      responses:
+        '200':
+          description: Successful submission
+          content:
+            application/xml:
+              schema:
+                type: string
+                format: xml
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        uri: ${transformer_lambda_invoke_arn}
+        httpMethod: POST
+        passthroughBehavior: when_no_match
+  /v1/underwriting/submit:
+    post:
+      summary: Submit for Underwriting
+      operationId: submitUnderwritingApplication
+      security:
+        - BasicAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customer:
+                  type: object
+                address:
+                  type: object
+                demographics:
+                  type: object
+                employment:
+                  type: object
+      responses:
+        '200':
+          description: Successful submission
+          content:
+            application/xml:
+              schema:
+                type: string
+                format: xml
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        uri: ${transformer_lambda_invoke_arn}
+        httpMethod: POST
+        passthroughBehavior: when_no_match
+components:
+  securitySchemes:
+    BasicAuth:
+      type: http
+      scheme: basic
+      x-amazon-apigateway-authorizer:
+        type: request
+        authorizerUri: ${authorizer_lambda_invoke_arn}
+        identitySource: method.request.header.Authorization
+        authorizerResultTtlInSeconds: 300

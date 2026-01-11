@@ -1,0 +1,52 @@
+{
+  "MPGW_UnderwritingAPI": {
+    "aws_resource_type": "aws_api_gateway_rest_api",
+    "aws_resource_name": "underwriting_api",
+    "notes": "The MPGW is mapped to an API Gateway REST API. The front-side handler is represented by the API Gateway stage URL. CloudFront is used for the URL rewrite functionality."
+  },
+  "PP_Underwriting": {
+    "aws_resource_type": "aws_api_gateway_method",
+    "aws_resource_name": "N/A",
+    "notes": "The processing policy's rules are mapped to individual API Gateway methods and their integrations."
+  },
+  "rule-customer-info": {
+    "aws_resource_type": "aws_api_gateway_method",
+    "aws_resource_name": "api_method_customer",
+    "notes": "Mapped to the POST /v1/customer method in API Gateway."
+  },
+  "rule-underwriting-submit": {
+    "aws_resource_type": "aws_api_gateway_method",
+    "aws_resource_name": "api_method_underwriting_submit",
+    "notes": "Mapped to the POST /v1/underwriting/submit method in API Gateway."
+  },
+  "AAA_Policy_Underwriting": {
+    "aws_resource_type": "aws_api_gateway_authorizer",
+    "aws_resource_name": "lambda_authorizer",
+    "notes": "Mapped to a Lambda Authorizer ('authorizer.py') which performs LDAP authentication and authorization. It propagates identity to the integration Lambda via the context object for WS-Security token injection."
+  },
+  "LDAP_Underwriters": {
+    "aws_resource_type": "aws_secretsmanager_secret",
+    "aws_resource_name": "ldap_credentials",
+    "notes": "LDAP server configuration and bind credentials are stored in AWS Secrets Manager and accessed by the Lambda Authorizer."
+  },
+  "URLRewrite_Underwriting": {
+    "aws_resource_type": "aws_cloudfront_distribution",
+    "aws_resource_name": "api_cloudfront",
+    "notes": "Mapped to a CloudFront distribution with a Lambda@Edge function ('edge_rewriter.py') that intercepts requests to '/underwriting/quote/*' and injects the SOAPAction header."
+  },
+  "xsl/json-to-soap-application.xsl": {
+    "aws_resource_type": "aws_lambda_function",
+    "aws_resource_name": "transformer_lambda",
+    "notes": "Logic is implemented in Python inside 'lambda/transformer.py'. It uses the request path to select the correct SOAP operation."
+  },
+  "xsl/insert-wsse-username-token.xsl": {
+    "aws_resource_type": "aws_lambda_function",
+    "aws_resource_name": "transformer_lambda",
+    "notes": "Logic is implemented in Python inside 'lambda/transformer.py'. It uses credentials from the authorizer context to safely build a WS-Security UsernameToken using xml.etree.ElementTree."
+  },
+  "BACKEND_SOAP_ALIAS": {
+    "aws_resource_type": "aws_secretsmanager_secret",
+    "aws_resource_name": "backend_url",
+    "notes": "The backend URL is stored in AWS Secrets Manager and used by the 'transformer_lambda' function."
+  }
+}
