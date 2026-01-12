@@ -8,7 +8,7 @@ This directory contains auto-generated AWS infrastructure code and configuration
 
 Generated files: 17
 - External Reference: None provided
-- Committed by: renukasalgiya1565-afk
+- Committed by: renuka.salgiya1565@gmail.com
 
 ## Files Structure
 ```
